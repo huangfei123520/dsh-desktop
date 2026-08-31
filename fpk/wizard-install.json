@@ -1,0 +1,22 @@
+[
+  {
+    "stepTitle": "Web 端口",
+    "items": [
+      {
+        "type": "input",
+        "field": "wizard_web_port",
+        "label": "Web UI 端口",
+        "initValue": "19090"
+      }
+    ]
+  },
+  {
+    "stepTitle": "说明",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "安装时将从 GitHub 拉取容器镜像（需外网，约 500MB）。装完打开应用即可通过浏览器使用 DSH 桌面 Web UI；数据保存在 /vol1/@apphome/dsh-desktop/data。换端口请在应用「设置」里修改。"
+      }
+    ]
+  }
+]
