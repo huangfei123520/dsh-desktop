@@ -1,0 +1,8 @@
+#!/bin/bash
+APP="dsh-desktop"
+APP_DIR="/var/apps/${APP}"
+COMPOSE="${APP_DIR}/target/app/docker-compose.yml"
+docker compose -f "$COMPOSE" down 2>/dev/null || \
+  docker-compose -f "$COMPOSE" down 2>/dev/null || \
+  docker rm -f dsh-desktop 2>/dev/null || true
+exit 0
