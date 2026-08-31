@@ -1,0 +1,46 @@
+name: check-upstream
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # UTC 00:00 = Beijing 08:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get upstream latest release
+        id: up
+        run: |
+          TAG=$(curl -sf https://api.github.com/repos/anywhere-labs/dsh-desktop/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+          CUR=$(cat fpk/UPSTREAM_VERSION 2>/dev/null || echo "none")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "current=$CUR" >> $GITHUB_OUTPUT
+          echo "upstream=$TAG current=$CUR"
+
+      - name: Sync fork to upstream
+        if: steps.up.outputs.tag != steps.up.outputs.current
+        run: |
+          git remote add upstream https://github.com/anywhere-labs/dsh-desktop.git
+          git fetch upstream master --depth=1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge upstream/master --no-edit
+          echo "${{ steps.up.outputs.tag }}" > fpk/UPSTREAM_VERSION
+          git add fpk/UPSTREAM_VERSION
+          git commit -m "chore: track upstream ${{ steps.up.outputs.tag }}" || true
+          git push origin master
+
+      - name: Dispatch fpk build
+        if: steps.up.outputs.tag != steps.up.outputs.current
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.up.outputs.tag }}"
+          VER="${TAG#v}"
+          gh workflow run build-fpk --ref master -f version="$VER" -f upstream_tag="$TAG"
