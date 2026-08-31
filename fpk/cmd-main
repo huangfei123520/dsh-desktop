@@ -1,0 +1,45 @@
+#!/bin/bash
+# DSH Desktop - lifecycle entry (fnOS runs as root)
+APP="dsh-desktop"
+APP_DIR="/var/apps/${APP}"
+COMPOSE="${APP_DIR}/target/app/docker-compose.yml"
+PERSIST="/vol1/@apphome/${APP}"
+
+load_port() {
+  if [ -n "$wizard_web_port" ]; then
+    PORT="$wizard_web_port"
+  elif [ -f "${PERSIST}/port" ]; then
+    PORT="$(cat ${PERSIST}/port)"
+  else
+    PORT="19090"
+  fi
+  case "$PORT" in ''|*[!0-9]*) PORT="19090";; esac
+}
+
+case "$1" in
+  start)
+    load_port
+    mkdir -p "${PERSIST}/data"
+    echo "$PORT" > "${PERSIST}/port"
+    export DSH_PORT="$PORT"
+    IMAGE=$(grep -E '^\s*image:' "$COMPOSE" | awk '{print $2}' | head -1)
+    docker pull "$IMAGE" >/dev/null 2>&1 || true
+    if docker compose version >/dev/null 2>&1; then
+      docker compose -f "$COMPOSE" up -d
+    else
+      docker-compose -f "$COMPOSE" up -d
+    fi
+    ;;
+  stop)
+    docker compose -f "$COMPOSE" down 2>/dev/null || \
+      docker-compose -f "$COMPOSE" down 2>/dev/null || \
+      docker rm -f dsh-desktop 2>/dev/null || true
+    ;;
+  status)
+    [ "$(docker inspect -f '{{.State.Running}}' dsh-desktop 2>/dev/null)" = "true" ] && exit 0 || exit 1
+    ;;
+  *)
+    echo "usage: $0 {start|stop|status}" >&2
+    exit 1
+    ;;
+esac
