@@ -1,0 +1,15 @@
+#!/bin/bash
+APP="dsh-desktop"
+APP_DIR="/var/apps/${APP}"
+COMPOSE="${APP_DIR}/target/app/docker-compose.yml"
+PERSIST="/vol1/@apphome/${APP}"
+PORT="${wizard_web_port:-19090}"
+case "$PORT" in ''|*[!0-9]*) PORT="19090";; esac
+echo "$PORT" > "${PERSIST}/port"
+export DSH_PORT="$PORT"
+if docker compose version >/dev/null 2>&1; then
+  docker compose -f "$COMPOSE" up -d --force-recreate
+else
+  docker-compose -f "$COMPOSE" up -d --force-recreate
+fi
+exit 0
