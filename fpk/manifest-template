@@ -1,0 +1,9 @@
+appname="dsh-desktop"
+version="@VERSION@"
+display_name="DSH 桌面"
+desc="DSH Desktop（DeepSeek Harness 桌面版）的 NAS Web 化封装。在容器内运行 DeepSeek Harness 的 Web UI 与插件系统，通过浏览器使用 DSH 桌面界面。数据持久化于 /vol1/@apphome/dsh-desktop/data。上游: anywhere-labs/dsh-desktop @UPTAG@。"
+maintainer="飞哥"
+maintainer_url="https://github.com/huangfei123520/dsh-desktop"
+source="thirdparty"
+platform="all"
+ctl_stop=true
