@@ -1,8 +1,9 @@
 #!/bin/bash
-# serve portal page with dynamic NAS host + port
+# serve portal page with dynamic NAS host + port + captured access token
 APP="dsh-desktop"
 PERSIST="/vol1/@apphome/${APP}"
 PORT=$(cat "${PERSIST}/port" 2>/dev/null || echo 19090)
+TOKEN=$(cat "${PERSIST}/data/dsh/web-token" 2>/dev/null || echo "")
 cat <<HTMLEOF
 Content-Type: text/html; charset=utf-8
 
@@ -22,16 +23,16 @@ Content-Type: text/html; charset=utf-8
 <iframe id="frame" style="display:none" frameborder="0"></iframe>
 <script>
   var port = "${PORT}";
-  var host = location.hostname;
-  var url = "http://" + host + ":" + port + "/";
+  var token = "${TOKEN}";
+  var url = "http://" + location.hostname + ":" + port + "/";
+  if (token) { url += "?token=" + token; }
   var f = document.getElementById("frame");
   var t = document.getElementById("tip");
-  fetch(url, {mode: "no-cors"}).catch(function(){});
   setTimeout(function(){
     t.style.display = "none";
     f.style.display = "block";
     f.src = url;
-  }, 1500);
+  }, 1200);
 </script>
 </body>
 </html>
