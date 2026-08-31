@@ -1,0 +1,76 @@
+name: build-fpk
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'fpk version, e.g. 2.0.4'
+        required: true
+      upstream_tag:
+        description: 'upstream tag, e.g. v2.0.4'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./fpk
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/dsh-desktop:v${{ inputs.version }}
+            ghcr.io/${{ github.repository_owner }}/dsh-desktop:latest
+
+      - name: Smoke test container
+        run: |
+          docker run -d --name dsh-test -p 19090:19090 -e DSH_PORT=19090 \
+            ghcr.io/${{ github.repository_owner }}/dsh-desktop:v${{ inputs.version }}
+          OK=0
+          for i in $(seq 1 30); do
+            sleep 3
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:19090/ || true)
+            echo "try $i => $CODE"
+            if [ "$CODE" != "000" ] && [ -n "$CODE" ]; then OK=1; break; fi
+          done
+          docker logs dsh-test | tail -n 50 || true
+          if [ "$OK" != "1" ]; then echo "::error::web ui did not answer"; exit 1; fi
+          docker rm -f dsh-test
+
+      - name: Build fpk package
+        run: |
+          chmod +x ./fpk/build-fpk.sh
+          ./fpk/build-fpk.sh "${{ inputs.version }}" "${{ inputs.upstream_tag }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-fpk-v${{ inputs.version }}
+          path: dist/*.fpk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: fpk-v${{ inputs.version }}
+          name: DSH桌面 fpk v${{ inputs.version }}
+          files: dist/*.fpk
+          body: |
+            上游版本: ${{ inputs.upstream_tag || 'n/a' }}
+            镜像: ghcr.io/${{ github.repository_owner }}/dsh-desktop:v${{ inputs.version }}
+            安装: 飞牛应用中心手动安装本 fpk（或从 NAS /vol2/1000/飞牛fpk/DSH桌面/ 获取）
