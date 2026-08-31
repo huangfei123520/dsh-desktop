@@ -1,0 +1,20 @@
+#!/bin/bash
+APP="dsh-desktop"
+APP_DIR="/var/apps/${APP}"
+COMPOSE="${APP_DIR}/target/app/docker-compose.yml"
+PERSIST="/vol1/@apphome/${APP}"
+PORT="${wizard_web_port:-19090}"
+case "$PORT" in ''|*[!0-9]*) PORT="19090";; esac
+mkdir -p "${PERSIST}/data"
+echo "$PORT" > "${PERSIST}/port"
+export DSH_PORT="$PORT"
+IMAGE=$(grep -E '^\s*image:' "$COMPOSE" | awk '{print $2}' | head -1)
+echo "[dsh-desktop] pulling image $IMAGE (first install may take minutes)..."
+docker pull "$IMAGE" || echo "[dsh-desktop] WARN: pull failed, will retry on start"
+if docker compose version >/dev/null 2>&1; then
+  docker compose -f "$COMPOSE" up -d
+else
+  docker-compose -f "$COMPOSE" up -d
+fi
+echo "[dsh-desktop] installed. Web UI: http://<NAS_IP>:${PORT}"
+exit 0
