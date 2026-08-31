@@ -1,0 +1,12 @@
+services:
+  dsh-desktop:
+    image: ghcr.io/huangfei123520/dsh-desktop:@IMAGETAG@
+    container_name: dsh-desktop
+    restart: unless-stopped
+    ports:
+      - "${DSH_PORT:-19090}:19090"
+    environment:
+      - DSH_PORT=19090
+      - DSH_HOME=/data/dsh
+    volumes:
+      - /vol1/@apphome/dsh-desktop/data:/data/dsh
