@@ -1,0 +1,11 @@
+#!/bin/bash
+APP="dsh-desktop"
+APP_DIR="/var/apps/${APP}"
+COMPOSE="${APP_DIR}/target/app/docker-compose.yml"
+PERSIST="/vol1/@apphome/${APP}"
+PORT="$(cat ${PERSIST}/port 2>/dev/null || echo 19090)"
+export DSH_PORT="$PORT"
+IMAGE=$(grep -E '^\s*image:' "$COMPOSE" | awk '{print $2}' | head -1)
+docker pull "$IMAGE" || true
+docker compose -f "$COMPOSE" up -d 2>/dev/null || docker-compose -f "$COMPOSE" up -d
+exit 0
